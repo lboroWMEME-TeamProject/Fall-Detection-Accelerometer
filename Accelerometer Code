@@ -1,0 +1,119 @@
+//------------------------------------------------------//Including required libraries
+#include <U8g2lib.h>
+#include <Wire.h>
+//------------------------------------------------------//defining what oled is being used in u8g2 library.
+U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C u8g2(U8G2_R0);
+//------------------------------------------------------//Initialising required Variables
+bool initialized=false;
+int Xread;
+int Xrest;
+int Yread;
+int Yrest;
+int Zread;
+int Zrest;
+double Gx;
+double Gy;
+double Gz;
+double dZ;
+int xpin=1;
+int ypin=2;
+int zpin=3 ;
+int t1;
+
+//------------------------------------------------------//Code to set up the OLED display using the U8g2 library.
+//-----------------------------------------------------//Displays team logo at start of initialisation, after clearing buffer so no prior readings from previous use are displayes and misinterpreted.
+void initial_display() 
+{
+  if (not initialized) 
+  {
+    u8g2.clearBuffer();
+    u8g2.setCursor(15,12);
+    u8g2.setFont(u8g2_font_crox2hb_tr); 
+    u8g2.print("Team BBB"); 
+    u8g2.setFont(u8g2_font_crox2h_tr);
+    u8g2.setCursor(30,29);
+    u8g2.print("Initializing...");
+    u8g2.sendBuffer(); 
+    delay(4000);
+   
+    initialized=true;
+  }
+//-----------------------------------------------------//Checks whether the sensor is running correctly. If yes: move on in code. If no: print on oled screen that there has been a failure initialising.
+    u8g2.clearBuffer();
+      u8g2.setFont(u8g2_font_crox2hb_tr); 
+          u8g2.setCursor(20,12);
+          u8g2.print("INITIALIZED");
+          u8g2.setCursor(0,29);
+          u8g2.print("Displaying Values");
+          u8g2.sendBuffer(); 
+        
+     delay(2000);
+  
+}
+//-----------------------------------------------------//Setup Accelerometer to read data in x,y,z direction individually.
+void setup() 
+{
+  u8g2.begin();
+  initial_display();
+  
+  Serial.begin(9600);
+    Xrest=analogRead(xpin);
+     Serial.print(Xrest);
+     Yrest=analogRead(ypin);
+     Serial.print(Yrest);
+     Zrest=analogRead(zpin);
+     Serial.print(Zrest);
+}
+//-----------------------------------------------------//Code to calculate an accurate value for position and acceleration of accelerometer. uses co-ordinate mapping to find difference between 1st and next position to calculate acceleration across that given distance. 
+void loop() 
+{
+  Serial.print("Time");
+  t1=millis();
+  Serial.println(t1*0.001);
+
+  Xread=analogRead(xpin)-Xrest;
+  Yread=analogRead(ypin)-Yrest;
+  Zread=analogRead(zpin)-Zrest;
+
+  Gx=Xread/67.584;
+  Gy=Yread/67.584;
+  Gz=Zread/67.584;
+  dZ=Zread;
+  //-----------------------------------------------------//Prints directional co=ordinates and also acceleration onto oled.
+  Serial.print(Gx);
+  Serial.print(Gy);
+  Serial.print(Gz);
+  
+   
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_crox2h_tr);
+  u8g2.setCursor(0,10);
+  u8g2.print("GX:");
+  u8g2.setCursor(25,10);
+  u8g2.print(Gx);
+  u8g2.setCursor(0,20); 
+  u8g2.print("GY:");
+  u8g2.setCursor(25,20);
+  u8g2.print(Gy);
+  u8g2.setCursor(0,30); ;
+  u8g2.print("GZ:");
+  u8g2.setCursor(25,30);
+  u8g2.print(Gz);
+  u8g2.setCursor(70,10);
+  u8g2.print("dZ=");
+  u8g2.setCursor(90,10);
+  u8g2.print(Zread);
+  u8g2.sendBuffer();
+  delay(200);
+  //-----------------------------------------------------//If acceleration in a particulat value(to be determined in testing) the oled will display a fall detected screen and an alert is sent out to server
+  if (Gz<-1){
+   u8g2.clearBuffer();
+   u8g2.setFont(u8g2_font_crox2h_tr);
+   u8g2.setCursor(48,15);
+   u8g2.print("FALL");
+   u8g2.setCursor(24,27);
+   u8g2.print("DETECTED");
+   u8g2.sendBuffer();
+   delay(5000);
+  }
+}
